@@ -39,7 +39,7 @@ HELP_EMBED.set_footer(text='Type ,count to know how many players are playing the
 
 def getBoard(Board):
     final = ''
-    print(Board)
+    #print(Board)
     for i in Board:
         a = i
         for j in a:
@@ -47,9 +47,133 @@ def getBoard(Board):
         final += '\n'
     return final
 
-#############################################
-#keep a track of the games and upcoming games
-#############################################
+async def checkHorizontal(Board, message):
+    '''
+    [
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
+    ]
+    '''
+
+    counter = {
+        GAMES[message.author.id][2] : 0,
+        GAMES[GAMES[message.author.id][0]][2] : 0
+    }
+    for row in Board:
+        for coin in row:
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
+            otherColor = coin[0]!=GAMES[GAMES[message.author.id][0]][2] and GAMES[GAMES[message.author.id][0]][2] or GAMES[message.author.id][2]
+            
+            counter[coin[0]] += 1
+            counter[otherColor] = 0
+
+            if counter[coin[0]]>= 4: return True, coin[0],await client.fetch_user(coin[1])
+    return False, None, None
+
+async def checkVertical(Board, message):
+    '''
+    [
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
+    ]
+    '''
+
+    counter = {
+        GAMES[message.author.id][2] : 0,
+        GAMES[GAMES[message.author.id][0]][2] : 0
+    }
+    LastCoin = ''
+    
+    for i in range(0,7):
+        for j in range(0,6):
+            coin = Board[j][i]
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
+            if LastCoin==coin[0]:
+                counter[coin[0]] += 1
+            LastCoin = coin[0]
+            print('VERTICAL COUNTER:',counter)
+            if counter.get(coin[0])!=None and counter.get(coin[0]) >= 3:
+                return True, coin[0], await client.fetch_user(coin[1])
+        LastCoin = ''
+                
+
+    return False, None, None
+
+def getAt(Board, Row, CoinNumber):
+    
+    if Row < len(Board) and CoinNumber < len(Board[Row]):
+        
+        return Board[Row][CoinNumber]
+    
+    return None
+
+
+async def checkDiagonal(Board, message):
+    '''
+    [
+    [['white', 0], ['white', 0], ['white', 0], [' red ', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], [' red ', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], [' red ', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [[' red ', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
+    ]
+    '''
+
+    Uppercounter = {
+        GAMES[message.author.id][2] : 0,
+        GAMES[GAMES[message.author.id][0]][2] : 0
+    }
+    LowerCounter = {
+        GAMES[message.author.id][2] : 0,
+        GAMES[GAMES[message.author.id][0]][2] : 0
+    }
+    LastCoin = ''
+    Direction = ''
+    for i in range(7):
+        for j in range(6):
+            coin = getAt(Board, j, i)
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
+            Uppercounter = LowerCounter = {GAMES[message.author.id][2] : 0,GAMES[GAMES[message.author.id][0]][2] : 0}
+
+            for m in range(1,5):
+                UpperCoin = getAt(Board, j - m, i + m)
+                LowerCoin = getAt(Board, j + m, i + m)
+                
+                if UpperCoin!=None and UpperCoin[0] != GAMES[message.author.id][2] and UpperCoin[0] != GAMES[GAMES[message.author.id][0]][2]: UpperCoin = None
+                if LowerCoin!=None and LowerCoin[0] != GAMES[message.author.id][2] and LowerCoin[0] != GAMES[GAMES[message.author.id][0]][2]: LowerCoin = None
+                if UpperCoin == None and LowerCoin == None: continue
+                if UpperCoin != coin and LowerCoin != coin: continue
+                
+
+                if UpperCoin != None:
+                    Uppercounter[UpperCoin[0]]+=1
+                
+                if LowerCoin != None:
+                    LowerCounter[LowerCoin[0]]+=1
+                
+                print(Uppercounter, LowerCounter, coin, LowerCoin, UpperCoin)
+                
+                if LowerCoin!=None and LowerCounter[LowerCoin[0]]>= 3:
+                    print(LowerCounter[LowerCoin[0]])
+                    return True, LowerCoin[0], await client.fetch_user(LowerCoin[1])
+                elif UpperCoin!=None and Uppercounter[UpperCoin[0]]>=3:
+                    print(Uppercounter[UpperCoin[0]])
+                    return True, UpperCoin[0], await client.fetch_user(UpperCoin[1])
+
+    return False, None, None
+
+##############################################
+#keep a track of the games and upcoming games#
+##############################################
 
 GAMES = {}
 UPCOMING_GAME_REQUESTS = {}
@@ -72,7 +196,7 @@ async def on_reaction_add(reaction, user):
         for i in range(6):
             a = []
             for j in range(7):
-                a.append(['white'])
+                a.append(['black',0])
                 
             BOARD.append(a)
 
@@ -137,8 +261,9 @@ async def on_message(message):
                 if RowToInsertCoin<0: return
 
                 for i in range(len(Board)-1, 0, -1):
-                    if Board[i][RowToInsertCoin][0] == 'white':
+                    if Board[i][RowToInsertCoin][0] != GAMES[message.author.id][2] and Board[i][RowToInsertCoin][0] != GAMES[GAMES[message.author.id][0]][2]:
                         Board[i][RowToInsertCoin][0] = OngoingGame[2]
+                        Board[i][RowToInsertCoin][1] = message.author.id
                         break
                 
                 GAMES[message.author.id][3] = False
@@ -149,8 +274,48 @@ async def on_message(message):
                 if OngoingGame==None: return
                 final = getBoard(OngoingGame[1])
                 abc = await client.fetch_user(OngoingGame[0])
+                
                 await message.channel.send(embed = discord.Embed(title = f"Board - {abc.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
-                    
+                
+                h, hwc,pId1 = await checkHorizontal(Board, message)
+                v, vwc,pId2 = False, None, None
+                d, dwc,pId3 = False, None, None
+                if h == False:
+                    v, vwc,pId2 = await checkVertical(Board, message)
+                if h==False and v==False:
+                    d, dwc,pId3 = await checkDiagonal(Board, message)
+                
+                print(h, v, d)
+                finalWinner, fwc, fpId = False, None, None
+                Direction = ''
+                if h==True:
+                    finalWinner, fwc, fpId = h, hwc, pId1
+                    Direction = 'Horizontal'
+                if v==True:
+                    finalWinner, fwc, fpId = v, vwc, pId2
+                    Direction = 'Vertical'
+                if d==True:
+                    finalWinner, fwc, fpId = d, dwc, pId3
+                    Direction = 'Diagonal'
 
+                if finalWinner == True:
+                    
+                    WINNER_EMBED = discord.Embed(
+                        description = f"{fwc.upper()} just won!!! Congrats {fpId.mention}!",
+                        title = f'GAME OVER!!! -> {Direction} win!',
+                        color = discord.Color.green()
+                    )
+
+                    #WINNER_EMBED.set_image(url = fpId.avatar_url)
+                    WINNER_EMBED.set_footer(text = 'I hope you enjoyed!!!')
+
+                    await message.channel.send(embed = WINNER_EMBED)
+
+                    OngoingGame = GAMES.get(message.author.id)
+                    if OngoingGame==None: return
+                    a = GAMES[message.author.id][0]
+                    GAMES[message.author.id] = None
+                    GAMES[a] = None
+                    #await message.channel.send('Stopped :white_check_mark:')
 
 client.run(TOKEN)
