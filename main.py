@@ -65,7 +65,12 @@ async def checkHorizontal(Board, message):
     }
     for row in Board:
         for coin in row:
-            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]:
+                counter = {
+                    GAMES[message.author.id][2] : 0,
+                    GAMES[GAMES[message.author.id][0]][2] : 0
+                }
+                continue
             otherColor = coin[0]!=GAMES[GAMES[message.author.id][0]][2] and GAMES[GAMES[message.author.id][0]][2] or GAMES[message.author.id][2]
             
             counter[coin[0]] += 1
@@ -90,19 +95,23 @@ async def checkVertical(Board, message):
         GAMES[message.author.id][2] : 0,
         GAMES[GAMES[message.author.id][0]][2] : 0
     }
-    LastCoin = ''
     
     for i in range(0,7):
         for j in range(0,6):
             coin = Board[j][i]
-            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
-            if LastCoin==coin[0]:
-                counter[coin[0]] += 1
-            LastCoin = coin[0]
-            print('VERTICAL COUNTER:',counter)
-            if counter.get(coin[0])!=None and counter.get(coin[0]) >= 3:
-                return True, coin[0], await client.fetch_user(coin[1])
-        LastCoin = ''
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]:
+                counter = {
+                    GAMES[message.author.id][2] : 0,
+                    GAMES[GAMES[message.author.id][0]][2] : 0
+                }
+                continue
+            otherColor = coin[0]!=GAMES[GAMES[message.author.id][0]][2] and GAMES[GAMES[message.author.id][0]][2] or GAMES[message.author.id][2]
+            
+            counter[coin[0]] += 1
+            counter[otherColor] = 0
+
+            if counter[coin[0]]>= 4: return True, coin[0],await client.fetch_user(coin[1])
+        
                 
 
     return False, None, None
@@ -115,6 +124,24 @@ def getAt(Board, Row, CoinNumber):
     
     return None
 
+def checkDirection(Board, Row, CoinNumber, RowIncr, CoinIncr):
+    coin = getAt(Board, Row, CoinNumber)
+
+    counter = 0
+    currentCoin, CurrentRow, CurrentCoinNumber = coin,Row,CoinNumber
+    
+    while counter<4:
+        print(currentCoin, CurrentRow, CurrentCoinNumber, counter)
+        if currentCoin != None and currentCoin == coin:
+            counter += 1
+        else:
+            return False
+        
+        CurrentCoinNumber+= CoinIncr
+        CurrentRow += RowIncr
+        currentCoin = getAt(Board, CurrentRow, CurrentCoinNumber)
+    print(counter)
+    return True
 
 async def checkDiagonal(Board, message):
     '''
@@ -128,46 +155,19 @@ async def checkDiagonal(Board, message):
     ]
     '''
 
-    Uppercounter = {
-        GAMES[message.author.id][2] : 0,
-        GAMES[GAMES[message.author.id][0]][2] : 0
-    }
-    LowerCounter = {
-        GAMES[message.author.id][2] : 0,
-        GAMES[GAMES[message.author.id][0]][2] : 0
-    }
-    LastCoin = ''
-    Direction = ''
+    
     for i in range(7):
         for j in range(6):
             coin = getAt(Board, j, i)
             if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
-            Uppercounter = LowerCounter = {GAMES[message.author.id][2] : 0,GAMES[GAMES[message.author.id][0]][2] : 0}
 
-            for m in range(1,5):
-                UpperCoin = getAt(Board, j - m, i + m)
-                LowerCoin = getAt(Board, j + m, i + m)
-                
-                if UpperCoin!=None and UpperCoin[0] != GAMES[message.author.id][2] and UpperCoin[0] != GAMES[GAMES[message.author.id][0]][2]: UpperCoin = None
-                if LowerCoin!=None and LowerCoin[0] != GAMES[message.author.id][2] and LowerCoin[0] != GAMES[GAMES[message.author.id][0]][2]: LowerCoin = None
-                if UpperCoin == None and LowerCoin == None: continue
-                if UpperCoin != coin and LowerCoin != coin: continue
-                
+            UpperCheck = checkDirection(Board, j, i, -1, 1)
+            LowerCheck = checkDirection(Board, j, i, 1, 1)
 
-                if UpperCoin != None:
-                    Uppercounter[UpperCoin[0]]+=1
-                
-                if LowerCoin != None:
-                    LowerCounter[LowerCoin[0]]+=1
-                
-                print(Uppercounter, LowerCounter, coin, LowerCoin, UpperCoin)
-                
-                if LowerCoin!=None and LowerCounter[LowerCoin[0]]>= 3:
-                    print(LowerCounter[LowerCoin[0]])
-                    return True, LowerCoin[0], await client.fetch_user(LowerCoin[1])
-                elif UpperCoin!=None and Uppercounter[UpperCoin[0]]>=3:
-                    print(Uppercounter[UpperCoin[0]])
-                    return True, UpperCoin[0], await client.fetch_user(UpperCoin[1])
+            print(UpperCheck, LowerCheck)
+            
+            if LowerCheck==True or UpperCheck == True:
+                return True, coin[0], await client.fetch_user(coin[1])
 
     return False, None, None
 
@@ -259,12 +259,14 @@ async def on_message(message):
                 if RowToInsertCoin==None: return
                 RowToInsertCoin -= 1
                 if RowToInsertCoin<0: return
+                if Board[0][RowToInsertCoin][0] == GAMES[message.author.id][2] or Board[0][RowToInsertCoin][0] == GAMES[GAMES[message.author.id][0]][2]: return
 
-                for i in range(len(Board)-1, 0, -1):
+                for i in range(len(Board)-1, -1, -1):
                     if Board[i][RowToInsertCoin][0] != GAMES[message.author.id][2] and Board[i][RowToInsertCoin][0] != GAMES[GAMES[message.author.id][0]][2]:
                         Board[i][RowToInsertCoin][0] = OngoingGame[2]
                         Board[i][RowToInsertCoin][1] = message.author.id
                         break
+                    
                 
                 GAMES[message.author.id][3] = False
                 GAMES[GAMES[message.author.id][0]][3] = True
