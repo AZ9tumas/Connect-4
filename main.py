@@ -19,7 +19,7 @@ ERROR_EMBED.set_image(url = 'https://rockcontent.com/wp-content/uploads/2021/02/
 JOIN_REQUEST_EMBED = discord.Embed(
     title = 'Join request - react with 👍 to accept or with 👎 to decline.',
     color = discord.Color.dark_orange(),
-    description = '{Player1} is requesting you, {Player2},  to join them for a game of Connect 4!!!'
+    description = 'x is requesting you, y,  to join them for a game of Connect 4!!!'
 )
 
 JOIN_REQUEST_EMBED.set_image(url = 'https://media.discordapp.net/attachments/790093082515079169/834014685032349696/unknown.png')
@@ -234,10 +234,10 @@ async def on_message(message):
                 if GAMES.get(message.author.id)!=None: return await message.channel.send("You're already playing. Type ,stop to stop playing.")
                 player = message.mentions[0] if len(message.mentions) > 0 else None
                 if player == None: return await message.channel.send(embed=ERROR_EMBED)
-                
+                if player == message.author: return await message.channel.send("You can't play with yourself...")
                 if GAMES.get(player.id)!=None: return await message.channel.send('That user is already playing with someone else...')
                 a = JOIN_REQUEST_EMBED
-                a.description = a.description.format(Player1 = message.author.name, Player2 = player.name)
+                a.description = f'{message.author.name} is requesting you, {player.name},  to join them for a game of Connect 4!!!'
                 Join_request_message = await message.channel.send(embed = a)
                 await message.channel.send(f'{player.name} React to the above message with 👍 to accept or with 👎 to decline.')
                 UPCOMING_GAME_REQUESTS[player.id] = [Join_request_message.id, message.author.id, player.id]
@@ -247,11 +247,11 @@ async def on_message(message):
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
                 a = GAMES[message.author.id][0]
-                GAMES[message.author.id] = None
-                GAMES[a] = None
+                GAMES.pop(message.author.id)
+                GAMES.pop(a)
                 await message.channel.send('Stopped :white_check_mark:')
             if current_word == 'help': await message.channel.send(embed=HELP_EMBED)
-            if current_word == 'count': await message.channel.send(f"There are {len(GAMES)/2} game(s) being played right now!!!")
+            if current_word == 'count': await message.channel.send(f"There are {len(GAMES)/1} game(s) being played right now!!!")
             if current_word == 'board':
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
@@ -333,8 +333,8 @@ async def on_message(message):
                     OngoingGame = GAMES.get(message.author.id)
                     if OngoingGame==None: return
                     a = GAMES[message.author.id][0]
-                    GAMES[message.author.id] = None
-                    GAMES[a] = None
+                    GAMES.pop(message.author.id)
+                    GAMES.pop(a)
                     #await message.channel.send('Stopped :white_check_mark:')
 
 client.run(TOKEN)
