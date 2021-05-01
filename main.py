@@ -47,83 +47,6 @@ def getBoard(Board):
         final += '\n'
     return final
 
-async def checkHorizontal(Board, message):
-    '''
-    [
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
-    ]
-    '''
-
-    counter = {
-        GAMES[message.author.id][2] : 0,
-        GAMES[GAMES[message.author.id][0]][2] : 0
-    }
-    for row in Board:
-        for coin in row:
-            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]:
-                counter = {
-                    GAMES[message.author.id][2] : 0,
-                    GAMES[GAMES[message.author.id][0]][2] : 0
-                }
-                continue
-            otherColor = coin[0]!=GAMES[GAMES[message.author.id][0]][2] and GAMES[GAMES[message.author.id][0]][2] or GAMES[message.author.id][2]
-            
-            counter[coin[0]] += 1
-            counter[otherColor] = 0
-
-            if counter[coin[0]]>= 4: return True, coin[0],await client.fetch_user(coin[1])
-    return False, None, None
-
-async def checkVertical(Board, message):
-    '''
-    [
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
-    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
-    ]
-    '''
-
-    counter = {
-        GAMES[message.author.id][2] : 0,
-        GAMES[GAMES[message.author.id][0]][2] : 0
-    }
-    
-    for i in range(0,7):
-        for j in range(0,6):
-            coin = Board[j][i]
-            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]:
-                counter = {
-                    GAMES[message.author.id][2] : 0,
-                    GAMES[GAMES[message.author.id][0]][2] : 0
-                }
-                continue
-            otherColor = coin[0]!=GAMES[GAMES[message.author.id][0]][2] and GAMES[GAMES[message.author.id][0]][2] or GAMES[message.author.id][2]
-            
-            counter[coin[0]] += 1
-            counter[otherColor] = 0
-
-            if counter[coin[0]]>= 4: return True, coin[0],await client.fetch_user(coin[1])
-        
-                
-
-    return False, None, None
-
-def getAt(Board, Row, CoinNumber):
-    
-    if Row < len(Board) and CoinNumber < len(Board[Row]):
-        
-        return Board[Row][CoinNumber]
-    
-    return None
-
 def checkDirection(Board, Row, CoinNumber, RowIncr, CoinIncr):
     coin = getAt(Board, Row, CoinNumber)
 
@@ -142,6 +65,61 @@ def checkDirection(Board, Row, CoinNumber, RowIncr, CoinIncr):
         currentCoin = getAt(Board, CurrentRow, CurrentCoinNumber)
     print(counter)
     return True
+
+async def checkHorizontal(Board, message):
+    '''
+    [
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
+    ]
+    '''
+
+    for i in range(6):
+        for j in range(7):
+            coin = getAt(Board, i, j)
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
+            
+            HorizontalCheck = checkDirection(Board, i, j, 0, 1)
+            if HorizontalCheck == True: return True, coin[0], await client.fetch_user(coin[1])
+
+    return False, None, None
+
+async def checkVertical(Board, message):
+    '''
+    [
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
+    [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
+    ]
+    '''
+    
+    for i in range(0,7):
+        for j in range(0,6):
+            coin = getAt(Board, j, i)
+            if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
+            
+            VerticalCheck = checkDirection(Board, j, i, 1, 0)
+
+            if VerticalCheck == True: return True, coin[0],await client.fetch_user(coin[1])
+        
+                
+
+    return False, None, None
+
+def getAt(Board, Row, CoinNumber):
+    
+    if Row < len(Board) and CoinNumber < len(Board[Row]):
+        
+        return Board[Row][CoinNumber]
+    
+    return None
 
 async def checkDiagonal(Board, message):
     '''
@@ -189,6 +167,7 @@ async def on_reaction_add(reaction, user):
         messageId = UPCOMING_GAME_REQUESTS.get(user.id)
         if messageId == None: return
         if reaction.message.id != messageId[0]: return
+        if user.id != messageId[2]: return
 
         UPCOMING_GAME_REQUESTS[user.id] = None
         BOARD = []
@@ -242,6 +221,8 @@ async def on_message(message):
                 await message.channel.send(f'{player.name} React to the above message with 👍 to accept or with 👎 to decline.')
                 UPCOMING_GAME_REQUESTS[player.id] = [Join_request_message.id, message.author.id, player.id]
                 UPCOMING_GAME_REQUESTS[message.author.id] = [Join_request_message.id, message.author.id, player.id]
+                await Join_request_message.add_reaction('👍')
+                await Join_request_message.add_reaction('👎')
 
             if current_word == 'stop':
                 OngoingGame = GAMES.get(message.author.id)
