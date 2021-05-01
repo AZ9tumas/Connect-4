@@ -1,7 +1,65 @@
 import discord
+import sqlite3
 
 TOKEN = 'NzgwMzEyNTk5NjA2MzI5MzU0.X7tQvQ.3iCavWuVrwXi-YNyms0eDl825Qg'
 client = discord.Client()
+
+###########################
+#########CLASSES###########
+###########################
+class database:
+    def __init__(self):
+        conn = sqlite3.connect('save1.db')
+        self.conn = conn
+
+    def createTable(self, TableName = 'userData', Values = ['user', 'points']):
+        c = self.conn.cursor()
+        final = f'CREATE TABLE IF NOT EXISTS {TableName}('
+        for i in Values:
+            final += f'{i} TEXT'
+            if Values[len(Values)-1] != i:
+                final += ','
+
+        final += ')'
+        print(final)
+
+        c.execute(final)
+
+
+    
+    def saveData(self, user, newStats, TableName = 'userData'):
+        c = self.conn.cursor()
+        
+        if self.getData(user) == None:
+            c.execute(f"INSERT INTO {TableName} VALUES (?,?)", (user,newStats))
+            self.conn.commit()
+            return "Saved"
+        else:
+            self.updateData(newStats, user)
+            return "Updated"
+
+
+    def updateData(self, newStats, user):
+        c = self.conn.cursor()
+        c.execute("UPDATE userData SET points = ? WHERE user = ?", (newStats,user))
+        self.conn.commit()
+
+
+
+    def getData(self, info, tableName = 'userData'):
+        #Returns a list of data saved earlier
+        c = self.conn.cursor()
+        c.execute(f"SELECT * FROM {tableName} WHERE user='{info}'")
+        return c.fetchone()
+
+
+
+    def delete(self):
+        c = self.conn.cursor()
+        c.execute("DELETE FROM userData")
+
+    def close(self):
+        self.conn.close()
 
 ###########################
 #########EMBEDS############
@@ -232,7 +290,7 @@ async def on_message(message):
                 GAMES.pop(a)
                 await message.channel.send('Stopped :white_check_mark:')
             if current_word == 'help': await message.channel.send(embed=HELP_EMBED)
-            if current_word == 'count': await message.channel.send(f"There are {len(GAMES)/1} game(s) being played right now!!!")
+            if current_word == 'count': await message.channel.send(f"There is/are {len(GAMES)/1} game(s) being played right now!!!")
             if current_word == 'board':
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
@@ -246,6 +304,12 @@ async def on_message(message):
 
                 turn = await client.fetch_user(idqec)
                 await message.channel.send(embed = discord.Embed(title = f"Board {turn.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
+            if current_word == 'info':
+                OngoingGame = GAMES.get(message.author.id)
+                if OngoingGame==None: return
+                
+                plr = await client.fetch_user(OngoingGame[0])
+                await message.channel.send(f'You are playing with {plr.name} as {OngoingGame[2].upper()} ( :{OngoingGame[2]}_circle: )')
             if current_word == 'insert':
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
@@ -317,5 +381,38 @@ async def on_message(message):
                     GAMES.pop(message.author.id)
                     GAMES.pop(a)
                     #await message.channel.send('Stopped :white_check_mark:')
+
+                    db1 = database()
+                    db1.createTable()
+                    Data = db1.getData(fpId.id)
+                    a='saved'
+                    if Data!=None:
+                        a=db1.saveData(fpId.id, str(int(Data[1])+500))
+                        print(db1.getData(fpId))
+                    else:
+                        a=db1.saveData(fpId.id, '500')
+                    await message.channel.send(f'{a} Data for {fpId.mention}')
+            
+            if current_word == 'stats':
+                db1 = database()
+                db1.createTable()
+                Data = db1.getData(message.author.id)
+                if Data!=None:
+                    await message.channel.send(f'{Data[1]}')
+                else:
+                    db1.saveData(message.author.id, '0')
+                    await message.channel.send(db1.getData(message.author.id)[1])
+            
+            if current_word == 'save':
+                if not message.author.name == 'az9': return
+                db1 = database()
+                db1.createTable()
+                Data = db1.getData(message.author.id)
+                abc = message.content.replace(',save ','')
+                abc = abc.replace(' ','')
+                db1.saveData(message.author.id, abc)
+                await message.channel.send(db1.getData(message.author.id)[1])
+
+                    
 
 client.run(TOKEN)
