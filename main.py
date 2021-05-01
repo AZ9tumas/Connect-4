@@ -203,6 +203,9 @@ async def on_reaction_add(reaction, user):
         GAMES[messageId[1]] = [user.id, BOARD, 'red', True]
         GAMES[user.id] = [messageId[1], BOARD, 'blue', False]
         await reaction.message.channel.send("Starting game!")
+        plr = await client.fetch_user(messageId[1])
+        final = getBoard(BOARD)
+        await reaction.message.channel.send(embed = discord.Embed(title = f"Board {plr.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
 
     if reaction.emoji == '👎':
         messageId = UPCOMING_GAME_REQUESTS.get(user.id)
@@ -254,7 +257,14 @@ async def on_message(message):
                 if OngoingGame==None: return
                 Board = OngoingGame[1]
                 final = getBoard(Board)
-                await message.channel.send(embed = discord.Embed(title = 'Board',color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
+                #[user.id, BOARD, 'red', True]
+                
+                idqec = GAMES[OngoingGame[0]][0]
+                if OngoingGame[3]==False:
+                    idqec = OngoingGame[0]
+
+                turn = await client.fetch_user(idqec)
+                await message.channel.send(embed = discord.Embed(title = f"Board {turn.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
             if current_word == 'insert':
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
