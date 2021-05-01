@@ -17,7 +17,7 @@ ERROR_EMBED.set_footer(text='Better luck next time...')
 ERROR_EMBED.set_image(url = 'https://rockcontent.com/wp-content/uploads/2021/02/stage-en-error-1020.png')
 
 JOIN_REQUEST_EMBED = discord.Embed(
-    title = 'Join request - react with 👍 to accept.',
+    title = 'Join request - react with 👍 to accept or with 👎 to decline.',
     color = discord.Color.dark_orange(),
     description = '{Player1} is requesting you, {Player2},  to join them for a game of Connect 4!!!'
 )
@@ -208,8 +208,13 @@ async def on_reaction_add(reaction, user):
         messageId = UPCOMING_GAME_REQUESTS.get(user.id)
         if messageId == None: return
         if reaction.message.id != messageId[0]: return
+        
+        a = UPCOMING_GAME_REQUESTS[user.id]
         UPCOMING_GAME_REQUESTS[user.id] = None
+        UPCOMING_GAME_REQUESTS[a[2]] = None
         await reaction.message.delete()
+        plr = await client.fetch_user(a[1])
+        await reaction.message.channel.send(f"{plr.mention}, your game request was declined.")
 
 @client.event
 async def on_message(message):
@@ -227,11 +232,13 @@ async def on_message(message):
                 player = message.mentions[0] if len(message.mentions) > 0 else None
                 if player == None: return await message.channel.send(embed=ERROR_EMBED)
                 
+                if GAMES.get(player.id)!=None: return await message.channel.send('That user is already playing with someone else...')
                 a = JOIN_REQUEST_EMBED
                 a.description = a.description.format(Player1 = message.author.name, Player2 = player.name)
                 Join_request_message = await message.channel.send(embed = a)
-                await message.channel.send(f'{player.name} React to the above message with 👍 to accept.')
-                UPCOMING_GAME_REQUESTS[player.id] = [Join_request_message.id, message.author.id]
+                await message.channel.send(f'{player.name} React to the above message with 👍 to accept or with 👎 to decline.')
+                UPCOMING_GAME_REQUESTS[player.id] = [Join_request_message.id, message.author.id, player.id]
+                UPCOMING_GAME_REQUESTS[message.author.id] = [Join_request_message.id, message.author.id, player.id]
 
             if current_word == 'stop':
                 OngoingGame = GAMES.get(message.author.id)
