@@ -216,7 +216,7 @@ UPCOMING_GAME_REQUESTS = {}
 
 @client.event
 async def on_ready():
-    print('ready', client.user.name)
+    print('ready', client.user.name, sqlite3, discord)
 
 @client.event
 async def on_reaction_add(reaction, user):
