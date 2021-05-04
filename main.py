@@ -29,19 +29,19 @@ class database:
     
     def saveData(self, user, newStats, TableName = 'userData'):
         c = self.conn.cursor()
-        
-        if self.getData(user) == None:
+        print(user, newStats, TableName)
+        if self.getData(user, TableName) == None:
             c.execute(f"INSERT INTO {TableName} VALUES (?,?)", (user,newStats))
             self.conn.commit()
             return "Saved"
         else:
-            self.updateData(newStats, user)
+            self.updateData(newStats, user, TableName)
             return "Updated"
 
 
-    def updateData(self, newStats, user):
+    def updateData(self, newStats, user, TableName = 'userData'):
         c = self.conn.cursor()
-        c.execute("UPDATE userData SET points = ? WHERE user = ?", (newStats,user))
+        c.execute(f"UPDATE {TableName} SET points = ? WHERE user = ?", (newStats,user))
         self.conn.commit()
 
 
@@ -49,14 +49,15 @@ class database:
     def getData(self, info, tableName = 'userData'):
         #Returns a list of data saved earlier
         c = self.conn.cursor()
+        print(info, tableName)
         c.execute(f"SELECT * FROM {tableName} WHERE user='{info}'")
         return c.fetchone()
 
 
 
-    def delete(self):
+    def delete(self, TableName = 'userData'):
         c = self.conn.cursor()
-        c.execute("DELETE FROM userData")
+        c.execute(f"DELETE FROM {TableName}")
 
     def close(self):
         self.conn.close()
@@ -92,12 +93,13 @@ HELP_EMBED = discord.Embed(
 HELP_EMBED.set_image(url = 'https://media.discordapp.net/attachments/762774251841257495/834002032561356810/unknown.png')
 HELP_EMBED.set_footer(text='Type ,count to know how many players are playing the game right now!')
 #############################################
-#FUNCTIONS
+#################FUNCTIONS###################
 #############################################
 
-def getBoard(Board):
+def getBoard(Board, user = None):
     final = ''
     #print(Board)
+
     for i in Board:
         a = i
         for j in a:
@@ -214,9 +216,24 @@ async def checkDiagonal(Board, message):
 GAMES = {}
 UPCOMING_GAME_REQUESTS = {}
 
+#############################################
+####################SHOP#####################
+#############################################
+
+SHOP = {
+    'Colors' : {
+        'Black':'0',
+        'Green':'250',
+        'Yellow':'250',
+        'White':'0',
+        'Purple':'250'
+    }
+}
+
+
 @client.event
 async def on_ready():
-    print('ready', client.user.name, sqlite3, discord)
+    print('ready', client.user.name)
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -241,7 +258,7 @@ async def on_reaction_add(reaction, user):
         GAMES[user.id] = [messageId[1], BOARD, 'blue', False]
         await reaction.message.channel.send("Starting game!")
         plr = await client.fetch_user(messageId[1])
-        final = getBoard(BOARD)
+        final = getBoard(BOARD, plr)
         await reaction.message.channel.send(embed = discord.Embed(title = f"Board {plr.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
 
     if reaction.emoji == '👎':
@@ -295,7 +312,7 @@ async def on_message(message):
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
                 Board = OngoingGame[1]
-                final = getBoard(Board)
+                
                 #[user.id, BOARD, 'red', True]
                 
                 idqec = GAMES[OngoingGame[0]][0]
@@ -303,6 +320,7 @@ async def on_message(message):
                     idqec = OngoingGame[0]
 
                 turn = await client.fetch_user(idqec)
+                final = getBoard(Board, turn)
                 await message.channel.send(embed = discord.Embed(title = f"Board {turn.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
             if current_word == 'info':
                 OngoingGame = GAMES.get(message.author.id)
@@ -322,7 +340,7 @@ async def on_message(message):
                 RowToInsertCoin -= 1
                 if RowToInsertCoin<0: return
                 if Board[0][RowToInsertCoin][0] == GAMES[message.author.id][2] or Board[0][RowToInsertCoin][0] == GAMES[GAMES[message.author.id][0]][2]: return
-
+                print(RowToInsertCoin)
                 for i in range(len(Board)-1, -1, -1):
                     if Board[i][RowToInsertCoin][0] != GAMES[message.author.id][2] and Board[i][RowToInsertCoin][0] != GAMES[GAMES[message.author.id][0]][2]:
                         Board[i][RowToInsertCoin][0] = OngoingGame[2]
@@ -336,9 +354,9 @@ async def on_message(message):
                 GAMES[GAMES[message.author.id][0]][1] = Board
                 OngoingGame = GAMES.get(message.author.id)
                 if OngoingGame==None: return
-                final = getBoard(OngoingGame[1])
-                abc = await client.fetch_user(OngoingGame[0])
                 
+                abc = await client.fetch_user(OngoingGame[0])
+                final = getBoard(OngoingGame[1], abc)
                 await message.channel.send(embed = discord.Embed(title = f"Board - {abc.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
                 
                 h, hwc,pId1 = await checkHorizontal(Board, message)
@@ -404,7 +422,7 @@ async def on_message(message):
                     await message.channel.send(db1.getData(message.author.id)[1])
             
             if current_word == 'save':
-                if not message.author.name == 'az9': return
+                #if not message.author.name == 'az9': return
                 db1 = database()
                 db1.createTable()
                 Data = db1.getData(message.author.id)
@@ -412,6 +430,51 @@ async def on_message(message):
                 abc = abc.replace(' ','')
                 db1.saveData(message.author.id, abc)
                 await message.channel.send(db1.getData(message.author.id)[1])
+
+            if current_word == 'shop':
+                launch = message.content.replace(',shop', '')
+                launch = launch.replace(' ', '')
+
+                final = launch
+                if final == '': return await message.channel.send('Wrong use of commands, Eg.->,shop Colors')
+                if SHOP.get(launch):    
+                    for i in SHOP[launch]:
+                        final = f"{final}\n{i} :{i.lower()}_circle: -> ${SHOP[launch][i]}"
+                print(final)
+                await message.channel.send(final)
+
+            if current_word == 'buy':
+                launch = message.content.replace(',buy', '').replace(' ','')
+                final = ''
+                #colors white
+                print(final, launch)
+                for i in launch:
+                    final += i
+                    print(final)
+                    if SHOP.get(final):
+                        a = SHOP[final]
+                        item = launch.replace(final,'')
+                        print(item)
+                        if a[item]:
+                            db = database()
+                            db.createTable('backgroundColor')
+                            db.createTable()
+                            info = db.getData(str(message.author.id))
+                            if info !=None:
+                                coins = info[1]
+                                if int(coins) < int(a[item]): return await message.channel.send('Not enough points')
+                            else: return await message.channel.send('Not enough points')
+                                
+                            abcd = db.saveData(str(message.author.id), item, 'backgroundColor')
+                            print(abcd)
+                            abc = db.getData(str(message.author.id), 'backgroundColor')
+                            print(abc)
+                            await message.channel.send(f'Saved Data: {abc[1]}')
+                            xyz = db.saveData(message.author.id, str(int(info[1]) - int(a[item])))
+                            await message.channel.send(f'{xyz} data for {message.author.name}: ${db.getData(message.author.id)[1]}')
+                            break
+                        
+
 
                     
 
