@@ -451,7 +451,7 @@ async def on_message(message):
                         currentCoin = getAt(Board, CurrentRow, CurrentCoinNumber)
                         counter += 1
 
-                    await message.channel.send(embed = discord.Embed(title = f"{fpId.mention} WON!!!",color = discord.Color.dark_red(), description = getBoard(Board)).set_footer(text = 'type ,help for more info'))
+                    await message.channel.send(embed = discord.Embed(title = f"Winning Board...",color = discord.Color.dark_red(), description = getBoard(Board)).set_footer(text = 'Purple coins show how the game ended...'))
                     
 
 
