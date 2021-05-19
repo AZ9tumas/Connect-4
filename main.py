@@ -1,5 +1,8 @@
 import discord
 import sqlite3
+import random
+
+from discord.utils import get
 
 TOKEN = 'NzgwMzEyNTk5NjA2MzI5MzU0.X7tQvQ.3iCavWuVrwXi-YNyms0eDl825Qg'
 client = discord.Client()
@@ -92,6 +95,7 @@ HELP_EMBED = discord.Embed(
 
 HELP_EMBED.set_image(url = 'https://media.discordapp.net/attachments/762774251841257495/834002032561356810/unknown.png')
 HELP_EMBED.set_footer(text='Type ,count to know how many players are playing the game right now!')
+
 #############################################
 #################FUNCTIONS###################
 #############################################
@@ -118,13 +122,13 @@ def checkDirection(Board, Row, CoinNumber, RowIncr, CoinIncr):
         if currentCoin != None and currentCoin == coin:
             counter += 1
         else:
-            return False
+            return False, []
         
         CurrentCoinNumber+= CoinIncr
         CurrentRow += RowIncr
         currentCoin = getAt(Board, CurrentRow, CurrentCoinNumber)
     print(counter)
-    return True
+    return True, [counter, CurrentCoinNumber, CurrentRow, CoinNumber, Row, RowIncr, CoinIncr]
 
 async def checkHorizontal(Board, message):
     '''
@@ -141,12 +145,13 @@ async def checkHorizontal(Board, message):
     for i in range(6):
         for j in range(7):
             coin = getAt(Board, i, j)
+            if coin == None: break
             if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
             
-            HorizontalCheck = checkDirection(Board, i, j, 0, 1)
-            if HorizontalCheck == True: return True, coin[0], await client.fetch_user(coin[1])
+            HorizontalCheck, counter = checkDirection(Board, i, j, 0, 1)
+            if HorizontalCheck == True: return True, coin[0], await client.fetch_user(coin[1]), counter
 
-    return False, None, None
+    return False, None, None, counter
 
 async def checkVertical(Board, message):
     '''
@@ -163,19 +168,20 @@ async def checkVertical(Board, message):
     for i in range(0,7):
         for j in range(0,6):
             coin = getAt(Board, j, i)
+            if coin == None: break
             if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
             
-            VerticalCheck = checkDirection(Board, j, i, 1, 0)
+            VerticalCheck, counter = checkDirection(Board, j, i, 1, 0)
 
-            if VerticalCheck == True: return True, coin[0],await client.fetch_user(coin[1])
+            if VerticalCheck == True: return True, coin[0],await client.fetch_user(coin[1]), counter
         
                 
 
-    return False, None, None
+    return False, None, None, counter
 
 def getAt(Board, Row, CoinNumber):
     
-    if Row < len(Board) and CoinNumber < len(Board[Row]):
+    if Row < len(Board) and CoinNumber < len(Board[Row]) and Row>=0 and CoinNumber>=0:
         
         return Board[Row][CoinNumber]
     
@@ -197,17 +203,19 @@ async def checkDiagonal(Board, message):
     for i in range(7):
         for j in range(6):
             coin = getAt(Board, j, i)
+            if coin == None: break
             if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
 
-            UpperCheck = checkDirection(Board, j, i, -1, 1)
-            LowerCheck = checkDirection(Board, j, i, 1, 1)
+            UpperCheck, counter1 = checkDirection(Board, j, i, -1, 1)
+            LowerCheck, counter2 = checkDirection(Board, j, i, 1, 1)
 
             print(UpperCheck, LowerCheck)
             
             if LowerCheck==True or UpperCheck == True:
-                return True, coin[0], await client.fetch_user(coin[1])
+                return True, coin[0], await client.fetch_user(coin[1]), counter1, counter2
 
-    return False, None, None
+    return False, None, None, counter1, counter2
+
 
 ##############################################
 #keep a track of the games and upcoming games#
@@ -359,25 +367,25 @@ async def on_message(message):
                 final = getBoard(OngoingGame[1], abc)
                 await message.channel.send(embed = discord.Embed(title = f"Board - {abc.name}'s turn",color = discord.Color.dark_red(), description = final).set_footer(text = 'type ,help for more info'))
                 
-                h, hwc,pId1 = await checkHorizontal(Board, message)
-                v, vwc,pId2 = False, None, None
-                d, dwc,pId3 = False, None, None
+                h, hwc, pId1, c1 = await checkHorizontal(Board, message)
+                v, vwc, pId2, c2 = False, None, None, []
+                d, dwc, pId3, c3, c4 = False, None, None, [], []
                 if h == False:
-                    v, vwc,pId2 = await checkVertical(Board, message)
+                    v, vwc, pId2, c2 = await checkVertical(Board, message)
                 if h==False and v==False:
-                    d, dwc,pId3 = await checkDiagonal(Board, message)
+                    d, dwc, pId3, c3, c4 = await checkDiagonal(Board, message)
                 
                 print(h, v, d)
-                finalWinner, fwc, fpId = False, None, None
+                finalWinner, fwc, fpId, fc1, fc2 = False, None, None, None, None
                 Direction = ''
                 if h==True:
-                    finalWinner, fwc, fpId = h, hwc, pId1
+                    finalWinner, fwc, fpId, fc1 = h, hwc, pId1, c1
                     Direction = 'Horizontal'
                 if v==True:
-                    finalWinner, fwc, fpId = v, vwc, pId2
+                    finalWinner, fwc, fpId, fc1 = v, vwc, pId2, c1
                     Direction = 'Vertical'
                 if d==True:
-                    finalWinner, fwc, fpId = d, dwc, pId3
+                    finalWinner, fwc, fpId, fc1, fc2 = d, dwc, pId3, c1, c2
                     Direction = 'Diagonal'
 
                 if finalWinner == True:
@@ -410,7 +418,43 @@ async def on_message(message):
                     else:
                         a=db1.saveData(fpId.id, '500')
                     await message.channel.send(f'{a} Data for {fpId.mention}')
-            
+
+                    if Direction == 'Diagonal':
+                        a = fc2
+                        if fc1[0]>fc2[0]:
+                            a = fc1
+
+                    else:
+                        a = fc1
+
+                    #[counter, CurrentCoinNumber, CurrentRow, CoinNumber, Row, RowIncr, CoinIncr]
+
+                    Row = a[4]
+                    CoinNumber = a[3]
+                    CoinIncr = a[6]
+                    RowIncr = a[5]
+
+                    coin = getAt(Board, Row, CoinNumber)
+
+                    counter = 0
+                    currentCoin, CurrentRow, CurrentCoinNumber = coin,Row,CoinNumber
+
+                    while counter<4:
+                        print('EEEE:',currentCoin, CurrentRow, CurrentCoinNumber, counter)
+                        
+                        print('BOARD:', Board)
+                        print(CurrentRow, CurrentCoinNumber, getAt(Board, CurrentRow, CurrentCoinNumber))
+                        Board[CurrentRow][CurrentCoinNumber][0] = 'purple'
+        
+                        CurrentCoinNumber+= CoinIncr
+                        CurrentRow += RowIncr
+                        currentCoin = getAt(Board, CurrentRow, CurrentCoinNumber)
+                        counter += 1
+
+                    await message.channel.send(embed = discord.Embed(title = f"{fpId.mention} WON!!!",color = discord.Color.dark_red(), description = getBoard(Board)).set_footer(text = 'type ,help for more info'))
+                    
+
+
             if current_word == 'stats':
                 db1 = database()
                 db1.createTable()
