@@ -381,11 +381,11 @@ async def on_message(message):
                 if h==True:
                     finalWinner, fwc, fpId, fc1 = h, hwc, pId1, c1
                     Direction = 'Horizontal'
-                if v==True:
-                    finalWinner, fwc, fpId, fc1 = v, vwc, pId2, c1
+                elif v==True:
+                    finalWinner, fwc, fpId, fc1 = v, vwc, pId2, c2
                     Direction = 'Vertical'
-                if d==True:
-                    finalWinner, fwc, fpId, fc1, fc2 = d, dwc, pId3, c1, c2
+                elif d==True:
+                    finalWinner, fwc, fpId, fc1, fc2 = d, dwc, pId3, c3, c4
                     Direction = 'Diagonal'
 
                 if finalWinner == True:
@@ -421,7 +421,7 @@ async def on_message(message):
 
                     if Direction == 'Diagonal':
                         a = fc2
-                        if fc1[0]>fc2[0]:
+                        if len(fc1)>0:
                             a = fc1
 
                     else:
@@ -439,6 +439,9 @@ async def on_message(message):
                     counter = 0
                     currentCoin, CurrentRow, CurrentCoinNumber = coin,Row,CoinNumber
 
+                    #messageToSend = f'(Pls Ignore..)\nCc:{currentCoin}, Cr: {CurrentRow}, Ccn: {CurrentCoinNumber}'
+                    #await message.channel.send(messageToSend)
+
                     while counter<4:
                         print('EEEE:',currentCoin, CurrentRow, CurrentCoinNumber, counter)
                         
@@ -451,7 +454,7 @@ async def on_message(message):
                         currentCoin = getAt(Board, CurrentRow, CurrentCoinNumber)
                         counter += 1
 
-                    await message.channel.send(embed = discord.Embed(title = f"Winning Board...",color = discord.Color.dark_red(), description = getBoard(Board)).set_footer(text = 'Purple coins show how the game ended...'))
+                    await message.channel.send(embed = discord.Embed(title = f"{message.author.name} WON!!!",color = discord.Color.dark_red(), description = getBoard(Board)).set_footer(text = 'type ,help for more info'))
                     
 
 
