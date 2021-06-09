@@ -1,5 +1,7 @@
 import discord
 import database
+import commands
+import ast
 
 def getBoard(Board, user = None):
     final = ''
@@ -31,7 +33,7 @@ def checkDirection(Board, Row, CoinNumber, RowIncr, CoinIncr):
     #print(counter)
     return True, [counter, CurrentCoinNumber, CurrentRow, CoinNumber, Row, RowIncr, CoinIncr]
 
-async def checkHorizontal(Board, message, GAMES, client):
+def checkHorizontal(Board, message, GAMES, client):
     '''
     [
     [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
@@ -42,7 +44,7 @@ async def checkHorizontal(Board, message, GAMES, client):
     [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
     ]
     '''
-
+    HorizontalCheck, counter = False, []
     for i in range(6):
         for j in range(7):
             coin = getAt(Board, i, j)
@@ -50,11 +52,11 @@ async def checkHorizontal(Board, message, GAMES, client):
             if coin[0] != GAMES[message.author.id][2] and coin[0] != GAMES[GAMES[message.author.id][0]][2]: continue
             
             HorizontalCheck, counter = checkDirection(Board, i, j, 0, 1)
-            if HorizontalCheck == True: return True, coin[0], await client.fetch_user(coin[1]), counter
+            if HorizontalCheck == True: return True, coin[0], counter
 
-    return False, None, None, counter
+    return False, None, counter
 
-async def checkVertical(Board, message, GAMES, client):
+def checkVertical(Board, message, GAMES, client):
     '''
     [
     [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]], 
@@ -65,7 +67,7 @@ async def checkVertical(Board, message, GAMES, client):
     [['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0], ['white', 0]]
     ]
     '''
-    
+    VerticalCheck, counter = False, []
     for i in range(0,7):
         for j in range(0,6):
             coin = getAt(Board, j, i)
@@ -74,11 +76,11 @@ async def checkVertical(Board, message, GAMES, client):
             
             VerticalCheck, counter = checkDirection(Board, j, i, 1, 0)
 
-            if VerticalCheck == True: return True, coin[0],await client.fetch_user(coin[1]), counter
+            if VerticalCheck == True: return True, coin[0], counter
         
                 
 
-    return False, None, None, counter
+    return False, None, counter
 
 def getAt(Board, Row, CoinNumber):
     
@@ -88,7 +90,7 @@ def getAt(Board, Row, CoinNumber):
     
     return None
 
-async def checkDiagonal(Board, message, GAMES, client):
+def checkDiagonal(Board, message, GAMES, client):
     '''
     [
     [['white', 0], ['white', 0], ['white', 0], [' red ', 0], ['white', 0], ['white', 0], ['white', 0]], 
@@ -100,7 +102,7 @@ async def checkDiagonal(Board, message, GAMES, client):
     ]
     '''
 
-    
+    UpperCheck, LowerCheck, counter1, counter2 = False, False, [], []
     for i in range(7):
         for j in range(6):
             coin = getAt(Board, j, i)
@@ -113,18 +115,16 @@ async def checkDiagonal(Board, message, GAMES, client):
             #print(UpperCheck, LowerCheck)
             
             if LowerCheck==True or UpperCheck == True:
-                return True, coin[0], await client.fetch_user(coin[1]), counter1, counter2
+                return True, coin[0], counter1, counter2
 
-    return False, None, None, counter1, counter2
+    return False, None, counter1, counter2
 
 
-async def getWinningBoard(Board, a):
+def getWinningBoard(Board, a):
     Row = a[4]
     CoinNumber = a[3]
     CoinIncr = a[6]
     RowIncr = a[5]
-
-    coin = getAt(Board, Row, CoinNumber)
 
     counter = 0
     CurrentRow, CurrentCoinNumber = Row,CoinNumber
@@ -144,18 +144,20 @@ async def getWinningBoard(Board, a):
 async def checkWinner(GAMES, message, client):
 
     OngoingGame = GAMES.get(message.author.id)
+    if OngoingGame==None: return
     Board = OngoingGame[1]
 
-    h, hwc, pId1, c1 = await checkHorizontal(Board, message, GAMES, client)
-    v, vwc, pId2, c2 = False, None, None, []
-    d, dwc, pId3, c3, c4 = False, None, None, [], []
+    h, hwc, c1 = checkHorizontal(Board, message, GAMES, client)
+    v, vwc, c2 = False, None, []
+    d, dwc, c3, c4 = False, None, [], []
     if h == False:
-        v, vwc, pId2, c2 = await checkVertical(Board, message, GAMES, client)
+        v, vwc, c2 = checkVertical(Board, message, GAMES, client)
     if h==False and v==False:
-        d, dwc, pId3, c3, c4 = await checkDiagonal(Board, message, GAMES, client)
+        d, dwc, c3, c4 = checkDiagonal(Board, message, GAMES, client)
     
     finalWinner, fwc, fpId, fc1, fc2 = False, None, None, None, None
     Direction = ''
+    pId1 = pId2 = pId3 = message.author
     if h==True:
         finalWinner, fwc, fpId, fc1 = h, hwc, pId1, c1
         Direction = 'Horizontal'
@@ -179,14 +181,18 @@ async def checkWinner(GAMES, message, client):
 
         OngoingGame = GAMES.get(message.author.id)
         if OngoingGame==None: return
-        a = GAMES[message.author.id][0]
-        GAMES.pop(message.author.id)
-        GAMES.pop(a)
+        await commands.stop(GAMES, message, False)
+
         #await message.channel.send('Stopped :white_check_mark:')
 
         db1 = database.database()
         db1.createTable()
         Data = db1.getData(fpId.id)
+        Data = Data or [0,0]
+
+        try: int(Data[1])
+        except: Data[1] = 0
+        
         a='saved'
         if Data!=None:
             a=db1.saveData(fpId.id, str(int(Data[1])+500))
@@ -202,7 +208,12 @@ async def checkWinner(GAMES, message, client):
 
         else:
             a = fc1
-        
+
+        getWinningBoard(Board, a)
         await message.channel.send(embed = WINNER_EMBED)
-        await getWinningBoard(Board, a)
+        OtherPlayer = await client.fetch_user(OngoingGame[0])
+
+        await commands.saveboard({'Name':OtherPlayer.name, 'Id':OtherPlayer.id}, Board, {'Name':message.author.name, 'Id':message.author.id})
         await message.channel.send(embed = discord.Embed(title = f"{message.author.name} WON!!!",color = (fwc=='red' and discord.Color.dark_red() or discord.Color.dark_blue()), description = getBoard(Board)).set_footer(text = 'type ,help for more info'))
+
+        

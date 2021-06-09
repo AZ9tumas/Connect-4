@@ -92,17 +92,25 @@ async def on_message(message):
             
             if current_word == 'start': await commands.start(GAMES, UPCOMING_GAME_REQUESTS, message)
 
-            if current_word == 'stop': await commands.stop(GAMES, message)
+            elif current_word == 'stop': await commands.stop(GAMES, message)
                 
-            if current_word == 'help': await message.channel.send(embed=embeds.HELP_EMBED)
+            elif current_word == 'help': await message.channel.send(embed=embeds.HELP_EMBED)
 
-            if current_word == 'count': await message.channel.send(f"There is/are {len(GAMES)/1} game(s) being played right now!!!")
+            elif current_word == 'count': await message.channel.send(f"There is/are {len(GAMES)/1} game(s) being played right now!!!")
             
-            if current_word == 'board': await commands.board(GAMES, message, client)
+            elif current_word == 'board': await commands.board(GAMES, message, client)
             
-            if current_word == 'info': await commands.info(GAMES, message, client)
+            elif current_word == 'info': await commands.info(GAMES, message, client)
+
+            elif current_word == 'saveboard':
+                OngoingGame = GAMES.get(message.author.id)
+                if OngoingGame==None: return
+
+                Board = OngoingGame[1]
+                OtherPlayer = await client.fetch_user(OngoingGame[0])
+                await commands.saveboard({'Name':OtherPlayer.name, 'Id':OtherPlayer.id}, Board, {'Name':message.author.name, 'Id':message.author.id})
             
-            if current_word == 'insert':
+            elif current_word == 'insert':
                 
                 if await commands.insert(GAMES, message)!=None: return
                 
@@ -111,27 +119,37 @@ async def on_message(message):
                 await board_checks.checkWinner(GAMES, message, client)
 
 
-            if current_word == 'stats':
-                db1 = database.database()
-                db1.createTable()
-                Data = db1.getData(message.author.id)
-                if Data!=None:
-                    await message.channel.send(f'{Data[1]}')
-                else:
-                    db1.saveData(message.author.id, '0')
-                    await message.channel.send(db1.getData(message.author.id)[1])
+            elif current_word == 'stats':
+                await commands.stats(message)
             
-            if current_word == 'save':
+            elif current_word == 'save': pass
                 #if not message.author.name == 'az9': return
-                db1 = database.database()
-                db1.createTable()
-                Data = db1.getData(message.author.id)
-                abc = message.content.replace(',save ','')
-                abc = abc.replace(' ','')
-                db1.saveData(message.author.id, abc)
-                await message.channel.send(db1.getData(message.author.id)[1])
+                #db1 = database.database()
+                #db1.createTable()
+                #Data = db1.getData(message.author.id)
+                #abc = message.content.replace(',save ','')
+                #abc = abc.replace(' ','')
+                #db1.saveData(message.author.id, abc)
+                #await message.channel.send(db1.getData(message.author.id)[1])
 
-            if current_word == 'shop':
+            elif current_word == 'matches':
+                player = len(message.mentions)>0 and message.mentions[0] or message.author
+
+                if message.content.find('view')>0:
+                    print('view')
+
+                    nos = [int(s) for s in message.content.split() if s.isdigit()]
+                    if len(nos) > 0: await commands.matches(message, view=nos[0], player=player)
+                
+                elif message.content.find('page')>0:
+                    print('page')
+                    
+                    nos = [int(s) for s in message.content.split() if s.isdigit()]
+                    if len(nos) > 0: await commands.matches(message, page=nos[0], player=player)
+
+                else: await commands.matches(message, player=player)
+            
+            elif current_word == 'shop':
                 launch = message.content.replace(',shop', '')
                 launch = launch.replace(' ', '')
 
@@ -143,7 +161,7 @@ async def on_message(message):
                 print(final)
                 await message.channel.send(final)
 
-            if current_word == 'buy':
+            elif current_word == 'buy':
                 launch = message.content.replace(',buy', '').replace(' ','')
                 final = ''
                 #colors white

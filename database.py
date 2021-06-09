@@ -17,8 +17,6 @@ class database:
         print(final)
 
         c.execute(final)
-
-
     
     def saveData(self, user, newStats, TableName = 'userData'):
         c = self.conn.cursor()
