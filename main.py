@@ -12,7 +12,7 @@ import random
 
 from discord.utils import get
 
-TOKEN = 'NzgwMzEyNTk5NjA2MzI5MzU0.X7tQvQ.3iCavWuVrwXi-YNyms0eDl825Qg'
+TOKEN = 'aah'
 client = discord.Client()
 
 ##############################################
